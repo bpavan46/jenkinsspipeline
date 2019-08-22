@@ -1,0 +1,100 @@
+pipeline
+{
+    agent any
+    stages
+    {
+        stage('ContinuousDownload')
+        {
+            steps
+            {
+			    script
+				{ 
+				   try
+				   {
+                        git 'https://github.com/intelliqittrainings/maven.git'
+				   }
+				   catch(Exception e1)
+				   {
+				       mail bcc: '', body: 'Jenkins is facing problems downloading the dev code from git', cc: '', from: '', replyTo: '', subject: 'Unable to download from git', to: 'git.admin@gmail.com'
+                       exit(1);				  
+				  }
+				}
+            }
+        }
+        stage('ContinuousBuild')
+        {
+            steps
+            {
+			    script
+				{
+				   try
+				   {
+                           sh label: '', script: 'mvn package'
+				   }
+				   catch(Exception e2)
+				   {
+				         mail bcc: '', body: 'Jenkins is unable to create an artifact', cc: '', from: '', replyTo: '', subject: 'Unable to build', to: 'development.team@gmail.com'
+						 exit(1);
+				   }
+			    }
+            }
+        }
+        stage('ContinuousDeployment')
+        {
+            steps
+            {
+			    script
+				{
+				    try
+					{
+                              sh label: '', script: '''scp /home/ubuntu/.jenkins/workspace/DeclarativePipeline/webapp/target/webapp.war ubuntu@172.31.18.176:/var/lib/tomcat8/webapps/testapp.war
+ '''
+                     }
+					 catch(Exception e3)
+					 {
+					      mail bcc: '', body: 'Jenkins is unable to deploy into tomcat on qaservers', cc: '', from: '', replyTo: '', subject: 'Unable to deploy', to: 'middleware.team@gmail.com' 
+					      exit(1);
+					 }
+				}
+            }
+        }
+        stage('ContinuousTesing')
+        {
+            steps
+            {
+			    script
+				{
+				    try
+					{
+                            git 'https://github.com/selenium-saikrishna/TestingNew.git'
+                             sh label: '', script: 'echo "Testing Passed"'
+					}
+					catch(Exception e4)
+					{
+					     mail bcc: '', body: 'Auntomation testing has failed', cc: '', from: '', replyTo: '', subject: 'Functional Testing failed', to: 'testing.team@gmail.com'
+						 exit(1);
+					}
+				}
+            }
+        }
+         stage('ContinuousDelivery')
+        {
+            steps
+            {
+			    script
+				{
+				    try
+					{
+                           sh label: '', script: '''scp /home/ubuntu/.jenkins/workspace/DeclarativePipeline/webapp/target/webapp.war ubuntu@172.31.21.163:/var/lib/tomcat8/webapps/prodapp.war'''
+                    }
+					catch(Exception e5)
+					{
+					    mail bcc: '', body: 'Jenkins is not able to deploy into prod servers', cc: '', from: '', replyTo: '', subject: 'Delivery Failed', to: 'delivery.team@gmail.com'
+						exit(1);
+					}
+				}
+			}
+        }
+        
+    }
+}
